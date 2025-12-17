@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bank Management System</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #0f172a;
+            transition: all 0.3s ease;
+        }
+        .login-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 1; visibility: visible;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        .login-container.hidden { opacity: 0; visibility: hidden; }
+        .login-box { background: white; padding: 40px; border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 90%; max-width: 400px; text-align: center; }
+        .login-box h1 { color: #667eea; margin-bottom: 10px; font-size: 28px; }
+        .login-box .subtitle { color: #6b7280; margin-bottom: 30px; font-size: 14px; }
+        .login-box label { display: block; text-align: left; font-size: 14px; margin-bottom: 8px; color: #374151; font-weight: 600; }
+        .login-box select, .login-box input[type="password"] { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #e5e7eb; font-size: 14px; transition: border-color 0.3s ease; }
+        .login-box select:focus, .login-box input[type="password"]:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .login-btn { width: 100%; padding: 12px; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s ease; }
+        .login-btn:hover { transform: translateY(-2px); }
+        .error-message { color:#ef4444; font-size:13px; margin-bottom:15px; display:none; }
+        .error-message.show { display:block; }
+        .main-container { display:flex; min-height:100vh; opacity:0; visibility:hidden; transition:opacity .5s ease, visibility .5s ease; }
+        .main-container.visible { opacity:1; visibility:visible; }
+        .sidebar { width:280px; background:linear-gradient(180deg,#667eea 0%,#764ba2 100%); color:white; padding:20px; position:fixed; height:100vh; left:0; top:0; overflow-y:auto; transition:transform .3s ease; z-index:100; box-shadow:2px 0 15px rgba(0,0,0,.2); }
+        .sidebar.closed { transform:translateX(-100%); }
+        .sidebar-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; padding-bottom:20px; border-bottom:2px solid rgba(255,255,255,.2); }
+        .close-btn { background:rgba(255,255,255,.2); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:18px; }
+        .nav-menu { list-style:none; padding:0; margin:0; }
+        .nav-menu li { margin-bottom:12px; }
+        .nav-menu button { width:100%; background:rgba(255,255,255,.15); color:white; border:none; padding:14px 16px; border-radius:8px; cursor:pointer; text-align:left; font-size:15px; font-weight:500; }
+        .nav-menu button.active { background:rgba(255,255,255,.35); border-left:4px solid #fbbf24; padding-left:12px; }
+        .logout-btn { width:100%; background:#ef4444; color:white; border:none; padding:12px 16px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; margin-top:30px; }
+        .menu-btn { position:fixed; top:20px; left:20px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border:none; padding:12px 18px; border-radius:8px; cursor:pointer; z-index:99; font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(102,126,234,.3); }
+        .menu-btn.hidden { display:none; }
+        .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); display:none; z-index:50; }
+        .overlay.visible { display:block; }
+        .content { flex:1; margin-left:280px; padding:30px; background:#0f172a; transition:margin-left .3s ease; }
+        .page { display:none; opacity:0; transition:opacity .3s ease; }
+        .page.active { display:block; opacity:1; }
+        .app { max-width:1100px; margin:0 auto; background:#f9fafb; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.2); padding:30px; }
+        h1 { text-align:center; margin-bottom:10px; color:#111827; }
+        h2 { margin:10px 0 8px; color:#111827; }
+        .subtitle { text-align:center; color:#6b7280; margin-bottom:20px; }
+        .grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1.1fr); gap:20px; }
+        @media (max-width:768px){ .grid{grid-template-columns:1fr;} .sidebar{width:100%; z-index:101;} .content{margin-left:0;} }
+        .card{background:white;border-radius:10px;padding:16px;border:1px solid #e5e7eb;}
+        .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+        label{display:block;font-size:13px;margin-top:8px;margin-bottom:2px;color:#374151;}
+        select,input[type="number"]{width:100%;padding:8px;border-radius:6px;border:1px solid #d1d5db;font-size:14px;margin-bottom:10px;}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+        button.primary{border:none;padding:10px 20px;border-radius:6px;font-size:14px;cursor:pointer;color:white;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);font-weight:600;}
+        .account-summary{background:#eff6ff;border-radius:8px;padding:12px;margin-top:8px;font-size:14px;}
+        .balance{font-size:24px;font-weight:700;color:#16a34a;}
+        table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;}
+        th,td{border:1px solid #e5e7eb;padding:8px;text-align:left;}
+        th{background:#f3f4f6;font-weight:600;}
+        .tag{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;color:white;}
+        .tag.deposit{background:#16a34a;}.tag.withdraw{background:#e11d48;}.tag.transfer{background:#6366f1;}
+    </style>
+</head>
+<body>
+<div class="login-container" id="loginContainer">
+  <div class="login-box">
+    <h1>🏦 Bank Management</h1>
+    <div class="subtitle">Secure Login Portal</div>
+    <div class="error-message" id="errorMessage"></div>
+    <label for="loginAccount">Select Your Account</label>
+    <select id="loginAccount"></select>
+    <label for="loginPassword">Enter Your Password</label>
+    <input type="password" id="loginPassword" placeholder="Enter 4-digit password" maxlength="4">
+    <button class="login-btn" onclick="handleLogin()">Login</button>
+
+  </div>
+</div>
+<div class="main-container" id="mainContainer">
+  <button class="menu-btn" id="menuBtn" onclick="openSidebar()" title="Open Menu">☰ Menu</button>
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Menu</h2>
+      <button class="close-btn" onclick="closeSidebar()" title="Close Sidebar">✕</button>
+    </div>
+    <div class="user-info" id="userInfo">
+      <div class="user-name" id="userName">Loading...</div>
+      <p id="userAccountId" style="font-size:12px;opacity:.8;"></p>
+    </div>
+    <ul class="nav-menu">
+      <li><button onclick="showPage('accountDetails')" class="nav-link active" data-page="accountDetails">📋 Account Details</button></li>
+      <li><button onclick="showPage('depositWithdraw')" class="nav-link" data-page="depositWithdraw">💰 Deposit / Withdraw</button></li>
+      <li><button onclick="showPage('transferMoney')" class="nav-link" data-page="transferMoney">🔄 Transfer Money</button></li>
+      <li><button onclick="showPage('transactionDetails')" class="nav-link" data-page="transactionDetails">📊 Transaction Details</button></li>
+    </ul>
+    <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
+  </nav>
+  <div class="content" id="content">
+    <div id="accountDetails" class="page active">
+      <div class="app">
+        <h1>📋 Account Details</h1>
+        <div class="subtitle">View your account information and current balance</div>
+        <div class="card">
+          <div class="card-header"><h2>Your Account</h2><small id="loggedUser">-</small></div>
+          <div id="accountSummary" class="account-summary"></div>
+        </div>
+      </div>
+    </div>
+    <div id="depositWithdraw" class="page">
+      <div class="app">
+        <h1>💰 Deposit / Withdraw</h1>
+        <div class="subtitle">Manage your account balance</div>
+        <div class="grid">
+          <div class="card">
+            <div class="card-header"><h2>Deposit Money</h2><small>Add funds to your account</small></div>
+            <label for="depositAmount">Amount to Deposit</label>
+            <input type="number" id="depositAmount" min="1" step="1" placeholder="Enter amount">
+            <div class="btn-row"><button class="primary" onclick="deposit()">✓ Deposit</button></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h2>Withdraw Money</h2><small>Withdraw from your account</small></div>
+            <label for="withdrawAmount">Amount to Withdraw</label>
+            <input type="number" id="withdrawAmount" min="1" step="1" placeholder="Enter amount">
+            <div class="btn-row"><button class="primary" onclick="withdraw()">✗ Withdraw</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="transferMoney" class="page">
+      <div class="app">
+        <h1>🔄 Transfer Money</h1>
+        <div class="subtitle">Transfer funds between accounts</div>
+        <div class="card">
+          <div class="card-header"><h2>Transfer Details</h2><small>Between your accounts</small></div>
+          <label for="toAccount">Recipient Account</label>
+          <select id="toAccount"></select>
+          <label for="transferAmount">Amount to Transfer</label>
+          <input type="number" id="transferAmount" min="1" step="1" placeholder="Enter amount">
+          <div class="btn-row"><button class="primary" onclick="transfer()">→ Transfer Money</button></div>
+        </div>
+      </div>
+    </div>
+    <div id="transactionDetails" class="page">
+      <div class="app">
+        <h1>📊 Transaction Details</h1>
+        <div class="subtitle">All transactions for your account</div>
+        <div class="card">
+          <div class="card-header"><h2>Transaction History</h2><small id="txCount">0 transactions</small></div>
+          <table>
+            <thead><tr><th>#</th><th>Type</th><th>Amount</th><th>From</th><th>To</th><th>Time</th></tr></thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const defaultAccounts = [
+    { id: "25L31A05Y9", holder: "Pavan Kumar",   type: "SAVINGS", balance: 50000, password: "5117" },
+    { id: "25L31A05T7", holder: "Vandhana",      type: "CURRENT", balance: 50000, password: "0887" },
+    { id: "25L31A05Y1", holder: "Jay Shivendra", type: "SAVINGS", balance: 50000, password: "1627" },
+    { id: "25L31A05U0", holder: "Anjana",        type: "SAVINGS", balance: 50000, password: "4321" }
+  ];
+  let accountDatabase = [];
+  let transactions = [];
+  let currentUser = null;
+  let currentAccountId = null;
+
+  function loadState() {
+    const accStr = localStorage.getItem('bms_accounts');
+    const txStr  = localStorage.getItem('bms_transactions');
+    if (accStr) {
+      accountDatabase = JSON.parse(accStr);
+    } else {
+      accountDatabase = JSON.parse(JSON.stringify(defaultAccounts));
+      localStorage.setItem('bms_accounts', JSON.stringify(accountDatabase));
+    }
+    if (txStr) {
+      transactions = JSON.parse(txStr);
+    } else {
+      transactions = [];
+      localStorage.setItem('bms_transactions', JSON.stringify(transactions));
+    }
+  }
+  function saveAccounts() {
+    localStorage.setItem('bms_accounts', JSON.stringify(accountDatabase));
+  }
+  function saveTransactions() {
+    localStorage.setItem('bms_transactions', JSON.stringify(transactions));
+  }
+
+  function initLoginUI() {
+    loadState();
+    const loginAccount = document.getElementById('loginAccount');
+    loginAccount.innerHTML = '';
+    accountDatabase.forEach(acc => {
+      const opt = document.createElement('option');
+      opt.value = acc.id;
+      opt.textContent = acc.id + ' - ' + acc.holder;
+      loginAccount.appendChild(opt);
+    });
+  }
+  function handleLogin() {
+    const accountId = document.getElementById('loginAccount').value;
+    const password = document.getElementById('loginPassword').value;
+    const errorMsg = document.getElementById('errorMessage');
+    const account = accountDatabase.find(a => a.id === accountId);
+    if (!account || account.password !== password) {
+      errorMsg.textContent = '❌ Invalid account or password. Check credentials below.';
+      errorMsg.classList.add('show');
+      return;
+    }
+    currentUser = account;
+    currentAccountId = accountId;
+    errorMsg.classList.remove('show');
+    document.getElementById('loginContainer').classList.add('hidden');
+    document.getElementById('mainContainer').classList.add('visible');
+    initializeApp();
+  }
+  function handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+      currentUser = null;
+      currentAccountId = null;
+      document.getElementById('loginContainer').classList.remove('hidden');
+      document.getElementById('mainContainer').classList.remove('visible');
+      document.getElementById('loginPassword').value = '';
+      closeSidebar();
+    }
+  }
+  function initializeApp() {
+    updateUserInfo();
+    updateAccountView();
+    fillToAccountSelect();
+    closeSidebar();
+  }
+  function updateUserInfo() {
+    document.getElementById('userName').textContent = currentUser.holder;
+    document.getElementById('userAccountId').textContent = currentUser.id;
+    document.getElementById('loggedUser').textContent = currentUser.holder;
+  }
+  function openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const menuBtn = document.getElementById('menuBtn');
+    sidebar.classList.remove('closed');
+    overlay.classList.add('visible');
+    menuBtn.classList.add('hidden');
+  }
+  function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const menuBtn = document.getElementById('menuBtn');
+    sidebar.classList.add('closed');
+    overlay.classList.remove('visible');
+    menuBtn.classList.remove('hidden');
+  }
+  function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+    if (window.innerWidth <= 768) closeSidebar();
+    if (pageId === 'transactionDetails') renderTransactions();
+  }
+  function getAccount(id) { return accountDatabase.find(a => a.id === id); }
+  function formatCurrency(value) { return '₹' + value.toFixed(2); }
+  function now() { return new Date().toLocaleString(); }
+  function createTag(type) {
+    if (type === 'DEPOSIT') return '<span class="tag deposit">DEPOSIT</span>';
+    if (type === 'WITHDRAW') return '<span class="tag withdraw">WITHDRAW</span>';
+    return '<span class="tag transfer">' + type + '</span>';
+  }
+  function updateAccountView() {
+    const acc = currentUser;
+    const box = document.getElementById('accountSummary');
+    box.innerHTML = `<div><strong>Account ID:</strong> ${acc.id}</div>
+      <div><strong>Account Holder:</strong> ${acc.holder}</div>
+      <div><strong>Account Type:</strong> ${acc.type}</div>
+      <div><strong>Current Balance:</strong> <span class="balance">${formatCurrency(acc.balance)}</span></div>`;
+  }
+  function renderTransactions() {
+    const tbody = document.getElementById('txBody');
+    const list = transactions.filter(t => t.accountId === currentAccountId);
+    document.getElementById('txCount').textContent = list.length + ' transaction' + (list.length !== 1 ? 's' : '');
+    tbody.innerHTML = '';
+    if (list.length === 0) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 6; cell.textContent = 'No transactions yet.'; row.appendChild(cell); tbody.appendChild(row); return;
+    }
+    list.forEach((t, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${index + 1}</td><td>${createTag(t.type)}</td><td>${formatCurrency(t.amount)}</td><td>${t.from || '-'}</td><td>${t.to || '-'}</td><td>${t.time}</td>`;
+      tbody.appendChild(row);
+    });
+  }
+  function deposit() {
+    const amount = parseFloat(document.getElementById('depositAmount').value);
+    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+    currentUser.balance += amount;
+    const acc = accountDatabase.find(a => a.id === currentUser.id);
+    acc.balance = currentUser.balance;
+    transactions.push({ type:'DEPOSIT', amount, from:'', to:currentAccountId, accountId:currentAccountId, time:now() });
+    saveAccounts(); saveTransactions();
+    alert('✓ Deposit successful! New balance: ' + formatCurrency(currentUser.balance));
+    document.getElementById('depositAmount').value = '';
+    updateAccountView();
+  }
+  function withdraw() {
+    const amount = parseFloat(document.getElementById('withdrawAmount').value);
+    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+    if (amount > currentUser.balance) { alert('Insufficient balance!'); return; }
+    currentUser.balance -= amount;
+    const acc = accountDatabase.find(a => a.id === currentUser.id);
+    acc.balance = currentUser.balance;
+    transactions.push({ type:'WITHDRAW', amount, from:currentAccountId, to:'', accountId:currentAccountId, time:now() });
+    saveAccounts(); saveTransactions();
+    alert('✓ Withdrawal successful! New balance: ' + formatCurrency(currentUser.balance));
+    document.getElementById('withdrawAmount').value = '';
+    updateAccountView();
+  }
+  function fillToAccountSelect() {
+    const toAccount = document.getElementById('toAccount');
+    toAccount.innerHTML = '';
+    accountDatabase.forEach(acc => {
+      if (acc.id !== currentAccountId) {
+        const opt = document.createElement('option');
+        opt.value = acc.id; opt.textContent = acc.holder + ' (' + acc.id + ')'; toAccount.appendChild(opt);
+      }
+    });
+  }
+  function transfer() {
+    const toId = document.getElementById('toAccount').value;
+    const amount = parseFloat(document.getElementById('transferAmount').value);
+    const toAcc = getAccount(toId);
+    if (!toAcc || isNaN(amount) || amount <= 0) { alert('Select a valid recipient and amount.'); return; }
+    if (amount > currentUser.balance) { alert('Insufficient balance!'); return; }
+    currentUser.balance -= amount;
+    const fromAcc = accountDatabase.find(a => a.id === currentUser.id);
+    fromAcc.balance = currentUser.balance;
+    toAcc.balance += amount;
+    const time = now();
+    transactions.push({ type:'TRANSFER OUT', amount, from:currentAccountId, to:toId, accountId:currentAccountId, time });
+    transactions.push({ type:'TRANSFER IN', amount, from:currentAccountId, to:toId, accountId:toId, time });
+    saveAccounts(); saveTransactions();
+    alert('✓ Transfer successful! New balance: ' + formatCurrency(currentUser.balance));
+    document.getElementById('transferAmount').value = '';
+    updateAccountView();
+  }
+  window.onload = function(){ initLoginUI(); };
+</script>
+</body>
+</html>
